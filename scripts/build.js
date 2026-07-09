@@ -11,3 +11,5 @@ fs.mkdirSync(dist, { recursive: true });
 for (const file of files) {
   fs.copyFileSync(path.join(root, file), path.join(dist, file));
 }
+
+fs.cpSync(path.join(root, "src"), path.join(dist, "src"), { recursive: true });

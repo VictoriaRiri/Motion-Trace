@@ -116,6 +116,30 @@ button,
   cursor: pointer;
 }
 
+.mini-control,
+.threshold-control {
+  min-height: 36px;
+  border: 1px solid var(--line);
+  background: var(--surface-2);
+  color: var(--text);
+  border-radius: 7px;
+  padding: 0 10px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+}
+
+.threshold-control {
+  width: 100%;
+  justify-content: space-between;
+}
+
+.threshold-control input {
+  min-width: 90px;
+  accent-color: var(--green);
+}
+
 button:disabled,
 .file-button:has(input:disabled) {
   cursor: not-allowed;
@@ -249,7 +273,7 @@ input[type="range"] {
 
 .analysis-drawer {
   display: grid;
-  grid-template-columns: minmax(220px, 0.8fr) minmax(0, 1.3fr) minmax(320px, 1fr);
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 14px;
   padding: 12px;
 }
@@ -289,6 +313,22 @@ input[type="range"] {
 
 .person-controls input {
   accent-color: var(--blue);
+}
+
+select {
+  width: 100%;
+  min-height: 36px;
+  border: 1px solid var(--line);
+  background: var(--surface-2);
+  color: var(--text);
+  border-radius: 7px;
+  padding: 0 10px;
+}
+
+.sync-debug {
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.35;
 }
 
 .metric-grid {

@@ -22,6 +22,7 @@
             Upload
           </label>
           <button id="analyzeBtn" type="button" disabled>Analyze</button>
+          <label class="mini-control">Debug <input id="debugToggle" type="checkbox" /></label>
           <button id="exportBtn" type="button" disabled>Export CSV</button>
           <button id="drawerToggle" class="icon-button" type="button" aria-expanded="true" aria-controls="analysisDrawer" title="Toggle analysis panel">
             <span></span>
@@ -94,21 +95,39 @@
           <div id="personControls" class="person-controls"></div>
         </section>
         <section>
+          <h2>Trajectory Mode</h2>
+          <select id="trailMode" aria-label="Trajectory mode">
+            <option value="hybrid">Faded history + bright recent trail</option>
+            <option value="fade">Recent trail only</option>
+            <option value="persistent">Persistent history</option>
+          </select>
+          <label class="threshold-control">
+            Confidence
+            <input id="confidenceThreshold" type="range" min="0.1" max="0.8" value="0.35" step="0.05" />
+            <span id="confidenceThresholdText">0.35</span>
+          </label>
+          <div id="syncDebug" class="sync-debug">Video frame 0 | Pose frame 0 | Trace frame 0</div>
+        </section>
+        <section>
           <h2>Joint Selection</h2>
           <div id="jointControls" class="joint-controls"></div>
         </section>
         <section>
           <h2>Live Metrics</h2>
           <div class="metric-grid">
-            <div><span>Left wrist travel</span><strong id="lwMetric">0 px</strong></div>
-            <div><span>Right wrist travel</span><strong id="rwMetric">0 px</strong></div>
+            <div><span>Speed</span><strong id="speedMetric">0 px/s</strong></div>
+            <div><span>Acceleration</span><strong id="accelMetric">0 px/s²</strong></div>
+            <div><span>Stride length</span><strong id="strideMetric">0 px</strong></div>
             <div><span>Center drift</span><strong id="centerMetric">0 px</strong></div>
+            <div><span>Confidence</span><strong id="confidenceMetric">0%</strong></div>
+            <div><span>Tracking</span><strong id="trackingMetric">Waiting</strong></div>
+            <div><span>Lost joints</span><strong id="lostJointsMetric">0</strong></div>
             <div><span>Playback</span><strong id="playbackMetric">Paused</strong></div>
           </div>
         </section>
       </aside>
     </main>
 
-    <script src="./app.js"></script>
+    <script type="module" src="./app.js"></script>
   </body>
 </html>

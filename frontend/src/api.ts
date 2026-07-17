@@ -1,13 +1,34 @@
 import type { AnalysisMetadata, FrameData, MovementMetrics } from "./types";
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL ?? "http://127.0.0.1:8000";
+const LOCAL_API = "http://127.0.0.1:8000";
+const API_BASE = (() => {
+  const configured = import.meta.env.VITE_API_BASE_URL;
+  if (configured?.trim()) return configured;
+  if (typeof window !== "undefined") {
+    const host = window.location.hostname;
+    if (host === "localhost" || host === "127.0.0.1") return LOCAL_API;
+  }
+  return "";
+})();
+
+export const backendAvailable = Boolean(API_BASE);
+export const apiBase = API_BASE;
+
+function buildUrl(path: string) {
+  if (!API_BASE) throw new Error("Backend API base URL is not configured. Set VITE_API_BASE_URL or run the backend locally.");
+  return `${API_BASE}${path}`;
+}
 
 export function uploadVideo(file: File, onProgress?: (percent: number) => void): Promise<{ videoId: string; filename: string }> {
   return new Promise((resolve, reject) => {
+    if (!API_BASE) {
+      reject(new Error("Backend API URL not configured for this deployment."));
+      return;
+    }
     const xhr = new XMLHttpRequest();
     const form = new FormData();
     form.append("file", file);
-    xhr.open("POST", `${API_BASE}/upload`);
+    xhr.open("POST", buildUrl("/upload"));
     xhr.upload.onprogress = (event) => {
       if (event.lengthComputable && onProgress) {
         const pct = Math.round((event.loaded / event.total) * 100);

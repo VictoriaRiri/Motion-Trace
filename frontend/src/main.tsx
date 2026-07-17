@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { Maximize2, Pause, Play, StepForward, Upload } from "lucide-react";
-import { analyzeVideo, getFrame, getMetrics, getTrajectory, uploadVideo } from "./api";
+import { analyzeVideo, backendAvailable, getFrame, getMetrics, getTrajectory, uploadVideo } from "./api";
 import type { AnalysisMetadata, FrameData, Landmark, MovementMetrics } from "./types";
 import "./styles.css";
 
@@ -153,8 +153,9 @@ function App() {
           <section className="video-set" key={index}>
             <div className="set-header">
               <strong>{index === 0 ? "Video A" : "Video B Comparison"}</strong>
-              <label className="upload"><Upload size={16} />Upload<input type="file" accept="video/*" onChange={(event) => event.target.files?.[0] && handleUpload(index, event.target.files[0])} /></label>
+              <label className="upload"><Upload size={16} />Upload<input type="file" accept="video/*" onChange={(event) => event.target.files?.[0] && handleUpload(index, event.target.files[0])} disabled={!backendAvailable} /></label>
               <button disabled={!slot.videoId} onClick={() => handleAnalyze(index)}>Analyze</button>
+              {!backendAvailable && <span style={{ color: "#ff8b8b" }}>Backend unavailable; set VITE_API_BASE_URL or run the backend locally.</span>}
               <select value={slot.selectedPlayer ?? ""} onChange={(event) => selectPlayer(index, Number(event.target.value))}>
                 <option value="">Player</option>
                 {slot.analysis?.players.map((player) => <option key={player.trackId} value={player.trackId}>Player {player.trackId}</option>)}

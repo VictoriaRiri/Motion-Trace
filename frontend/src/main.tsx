@@ -82,8 +82,14 @@ function App() {
   async function handleUpload(index: number, file: File) {
     const localUrl = URL.createObjectURL(file);
     setSlots((current) => current.map((slot, itemIndex) => itemIndex === index ? { ...slot, file, localUrl, status: "Uploading..." } : slot));
-    const uploaded = await uploadVideo(file);
-    setSlots((current) => current.map((slot, itemIndex) => itemIndex === index ? { ...slot, videoId: uploaded.videoId, status: "Ready to analyze" } : slot));
+    try {
+      const uploaded = await uploadVideo(file, (pct) => {
+        setSlots((current) => current.map((slot, itemIndex) => itemIndex === index ? { ...slot, status: `Uploading... ${pct}%` } : slot));
+      });
+      setSlots((current) => current.map((slot, itemIndex) => itemIndex === index ? { ...slot, videoId: uploaded.videoId, status: "Ready to analyze" } : slot));
+    } catch (err) {
+      setSlots((current) => current.map((slot, itemIndex) => itemIndex === index ? { ...slot, status: `Upload failed: ${String(err)}` } : slot));
+    }
   }
 
   async function handleAnalyze(index: number) {

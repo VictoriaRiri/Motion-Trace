@@ -2,12 +2,33 @@ import type { AnalysisMetadata, FrameData, MovementMetrics } from "./types";
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL ?? "http://127.0.0.1:8000";
 
-export async function uploadVideo(file: File): Promise<{ videoId: string; filename: string }> {
-  const form = new FormData();
-  form.append("file", file);
-  const response = await fetch(`${API_BASE}/upload`, { method: "POST", body: form });
-  if (!response.ok) throw new Error(await response.text());
-  return response.json();
+export function uploadVideo(file: File, onProgress?: (percent: number) => void): Promise<{ videoId: string; filename: string }> {
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    const form = new FormData();
+    form.append("file", file);
+    xhr.open("POST", `${API_BASE}/upload`);
+    xhr.upload.onprogress = (event) => {
+      if (event.lengthComputable && onProgress) {
+        const pct = Math.round((event.loaded / event.total) * 100);
+        onProgress(pct);
+      }
+    };
+    xhr.onload = () => {
+      if (xhr.status >= 200 && xhr.status < 300) {
+        try {
+          const data = JSON.parse(xhr.responseText);
+          resolve(data);
+        } catch (err) {
+          reject(err);
+        }
+      } else {
+        reject(new Error(`Upload failed: ${xhr.status} ${xhr.statusText}`));
+      }
+    };
+    xhr.onerror = () => reject(new Error("Network error during upload"));
+    xhr.send(form);
+  });
 }
 
 export async function analyzeVideo(videoId: string): Promise<AnalysisMetadata> {

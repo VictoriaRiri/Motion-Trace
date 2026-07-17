@@ -174,7 +174,10 @@ function App() {
       </section>
 
       <aside className={`drawer ${drawerOpen ? "open" : ""}`}>
-        <h2>Analysis Drawer</h2>
+        <div className="drawer-header">
+          <h2>Analysis Drawer</h2>
+          <button className="drawer-close" onClick={() => setDrawerOpen(false)} aria-label="Close analysis drawer">×</button>
+        </div>
         <label>Joints<select value={jointMode} onChange={(event) => setJointMode(event.target.value)}>{Object.keys(jointGroups).map((group) => <option key={group} value={group}>{group}</option>)}</select></label>
         <label>Trail length<input type="range" min={10} max={240} value={trailLength} onChange={(event) => setTrailLength(Number(event.target.value))} /></label>
         <label>Opacity<input type="range" min={0.1} max={1} step={0.05} value={trailOpacity} onChange={(event) => setTrailOpacity(Number(event.target.value))} /></label>

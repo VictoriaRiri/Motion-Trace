@@ -60,6 +60,9 @@ canvas, video { width: 100%; height: 100%; display: block; object-fit: contain; 
 }
 .drawer.open { transform: translateX(0); }
 .drawer label { display: grid; gap: 6px; color: var(--muted); }
+.drawer-header { display:flex; justify-content:space-between; align-items:center; gap:8px; }
+.drawer-close { background: transparent; border: none; color: var(--muted); font-size: 20px; line-height: 1; width: 36px; height: 36px; border-radius: 6px; }
+.drawer-close:hover { background: rgba(255,255,255,0.03); color: var(--text); }
 .metrics { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
 .metrics div { background: var(--panel-2); border: 1px solid var(--line); border-radius: 7px; padding: 10px; display: grid; gap: 4px; }
 .metrics strong { font-size: 18px; }

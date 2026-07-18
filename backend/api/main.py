@@ -21,10 +21,43 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Application state and lazy initialization
 store = AnalysisStore(settings.analysis_dir)
-analyzer = MotionTraceAnalyzer()
-metrics_analyzer = MovementMetricsAnalyzer()
+app.state.analyzer = None
+app.state.metrics_analyzer = None
+app.state.models_ready = False
 uploaded_videos: dict[str, Path] = {}
+
+
+@app.on_event("startup")
+async def initialize_models() -> None:
+    """Initialize heavy ML models on startup and mark readiness.
+
+    Deferring model construction to startup prevents import-time failures
+    when the runtime environment is missing native dependencies or model
+    files. If initialization fails, the app stays up but reports not ready.
+    """
+    try:
+        # Instantiate model-backed components here so import-time code
+        # doesn't attempt to load models.
+        app.state.analyzer = MotionTraceAnalyzer()
+        app.state.metrics_analyzer = MovementMetricsAnalyzer()
+        app.state.models_ready = True
+    except Exception:
+        # Keep the app running but mark models as not ready; logs will
+        # help diagnose the cause on the host.
+        import traceback
+
+        traceback.print_exc()
+        app.state.models_ready = False
+
+
+
+@app.get("/health")
+async def health() -> dict:
+    """Basic health endpoint reporting whether ML models are ready."""
+    return {"status": "ok", "ready": bool(app.state.models_ready)}
+
 
 
 @app.post("/upload")
@@ -42,7 +75,9 @@ async def analyze_video(payload: dict) -> dict:
     video_path = uploaded_videos.get(video_id)
     if not video_path or not video_path.exists():
         raise HTTPException(status_code=404, detail="Uploaded video was not found")
-    analysis_id, metadata, frames, trajectories = analyzer.analyze(video_id, video_path)
+    if not getattr(app.state, "models_ready", False) or app.state.analyzer is None:
+        raise HTTPException(status_code=503, detail="Analysis models are not ready")
+    analysis_id, metadata, frames, trajectories = app.state.analyzer.analyze(video_id, video_path)
     store.save(analysis_id, metadata, frames, trajectories)
     return metadata.model_dump(by_alias=True)
 
@@ -70,5 +105,7 @@ async def get_trajectory(analysis_id: str, player_id: int) -> dict:
 @app.get("/metrics/{analysis_id}/{player_id}")
 async def get_metrics(analysis_id: str, player_id: int) -> dict:
     frames = store.frames(analysis_id)
-    metrics = metrics_analyzer.compute_for_player(player_id, frames)
+    if not getattr(app.state, "models_ready", False) or app.state.metrics_analyzer is None:
+        raise HTTPException(status_code=503, detail="Metrics analyzer is not ready")
+    metrics = app.state.metrics_analyzer.compute_for_player(player_id, frames)
     return metrics.model_dump(by_alias=True)

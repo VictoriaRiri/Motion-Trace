@@ -1,0 +1,10 @@
+services:
+  - type: web
+    name: motiontrace-backend
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      - key: PORT
+        value: "8000"

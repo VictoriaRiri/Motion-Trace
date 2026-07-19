@@ -1,18 +1,28 @@
 import type { AnalysisMetadata, FrameData, MovementMetrics } from "./types";
 
 const LOCAL_API = "http://127.0.0.1:8000";
+const DEFAULT_RENDER_API = "https://motiontrace-backend.onrender.com";
 const API_BASE = (() => {
   const configured = import.meta.env.VITE_API_BASE_URL;
   if (configured?.trim()) return configured;
   if (typeof window !== "undefined") {
+    const saved = window.localStorage.getItem("motiontrace_api_base_url");
+    if (saved?.trim()) return saved.trim();
     const host = window.location.hostname;
     if (host === "localhost" || host === "127.0.0.1") return LOCAL_API;
+    return DEFAULT_RENDER_API;
   }
   return "";
 })();
 
 export const backendAvailable = Boolean(API_BASE);
 export const apiBase = API_BASE;
+
+export async function checkBackendHealth(): Promise<{ status: string; ready: boolean }> {
+  const response = await fetch(buildUrl("/health"));
+  if (!response.ok) throw new Error(`Backend health check failed: ${response.status}`);
+  return response.json();
+}
 
 function buildUrl(path: string) {
   if (!API_BASE) throw new Error("Backend API base URL is not configured. Set VITE_API_BASE_URL or run the backend locally.");

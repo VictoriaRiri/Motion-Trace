@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { Maximize2, Pause, Play, StepForward, Upload } from "lucide-react";
-import { analyzeVideo, backendAvailable, getFrame, getMetrics, getTrajectory, uploadVideo } from "./api";
+import { analyzeVideo, apiBase, backendAvailable, checkBackendHealth, getFrame, getMetrics, getTrajectory, uploadVideo } from "./api";
 import type { AnalysisMetadata, FrameData, Landmark, MovementMetrics } from "./types";
 import "./styles.css";
 
@@ -43,12 +43,23 @@ function App() {
   const [trailLength, setTrailLength] = useState(90);
   const [trailOpacity, setTrailOpacity] = useState(0.7);
   const [trailThickness, setTrailThickness] = useState(3);
+  const [backendStatus, setBackendStatus] = useState("Checking backend...");
   const videoRefs = [useRef<HTMLVideoElement>(null), useRef<HTMLVideoElement>(null)];
   const poseRefs = [useRef<HTMLCanvasElement>(null), useRef<HTMLCanvasElement>(null)];
   const trajectoryRefs = [useRef<HTMLCanvasElement>(null), useRef<HTMLCanvasElement>(null)];
 
   const active = slots[activeSlot];
   const duration = Math.max(...slots.map((slot) => slot.analysis?.duration ?? 0), 0);
+
+  useEffect(() => {
+    if (!backendAvailable) {
+      setBackendStatus("Backend URL missing");
+      return;
+    }
+    checkBackendHealth()
+      .then((health) => setBackendStatus(health.ready ? `Backend ready: ${apiBase}` : `Backend online, models warming up: ${apiBase}`))
+      .catch(() => setBackendStatus(`Backend unreachable: ${apiBase}`));
+  }, []);
 
   useEffect(() => {
     let frame = 0;
@@ -139,6 +150,7 @@ function App() {
       <header className="topbar">
         <div><h1>MotionTrace</h1><p>Hybrid YOLO tracking + cropped MediaPipe pose analysis</p></div>
         <div className="actions">
+          <span className="backend-pill">{backendStatus}</span>
           <button onClick={() => setIsPlaying((value) => !value)}>{isPlaying ? <Pause size={16} /> : <Play size={16} />}{isPlaying ? "Pause" : "Play"}</button>
           <button onClick={() => seek(Math.min(duration, time + 1 / (active.analysis?.fps || 24)))}><StepForward size={16} />Frame</button>
           <select value={speed} onChange={(event) => setSpeed(Number(event.target.value))}>
@@ -155,7 +167,7 @@ function App() {
               <strong>{index === 0 ? "Video A" : "Video B Comparison"}</strong>
               <label className="upload"><Upload size={16} />Upload<input type="file" accept="video/*" onChange={(event) => event.target.files?.[0] && handleUpload(index, event.target.files[0])} disabled={!backendAvailable} /></label>
               <button disabled={!slot.videoId} onClick={() => handleAnalyze(index)}>Analyze</button>
-              {!backendAvailable && <span style={{ color: "#ff8b8b" }}>Backend unavailable; set VITE_API_BASE_URL or run the backend locally.</span>}
+              {!backendAvailable && <span style={{ color: "#ff8b8b" }}>Backend URL unavailable.</span>}
               <select value={slot.selectedPlayer ?? ""} onChange={(event) => selectPlayer(index, Number(event.target.value))}>
                 <option value="">Player</option>
                 {slot.analysis?.players.map((player) => <option key={player.trackId} value={player.trackId}>Player {player.trackId}</option>)}

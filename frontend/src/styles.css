@@ -32,6 +32,15 @@ h1, h2, p { margin: 0; }
 h1 { font-size: 22px; }
 p, span { color: var(--muted); }
 .actions, .set-header { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.backend-pill {
+  min-height: 30px;
+  border: 1px solid var(--line);
+  background: #111820;
+  color: var(--muted);
+  border-radius: 7px;
+  padding: 6px 9px;
+  font-size: 12px;
+}
 .workspace { display: grid; gap: 12px; min-height: 0; }
 .video-set { display: grid; gap: 8px; }
 .set-header { padding: 8px; }

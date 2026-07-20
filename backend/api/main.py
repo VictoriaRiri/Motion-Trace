@@ -5,9 +5,7 @@ from pathlib import Path
 from fastapi import FastAPI, File, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 
-from backend.analytics.movement_metrics import MovementMetricsAnalyzer
 from backend.api.analysis_store import AnalysisStore
-from backend.api.video_analyzer import MotionTraceAnalyzer
 from backend.config import settings
 from backend.utils.video_io import save_upload
 
@@ -31,32 +29,40 @@ uploaded_videos: dict[str, Path] = {}
 
 @app.on_event("startup")
 async def initialize_models() -> None:
-    """Initialize heavy ML models on startup and mark readiness.
+    """Keep startup light enough for constrained hosts.
 
-    Deferring model construction to startup prevents import-time failures
-    when the runtime environment is missing native dependencies or model
-    files. If initialization fails, the app stays up but reports not ready.
+    Heavy CV objects are created on first analysis instead of during deploy,
+    so Render health checks pass before model memory is needed.
     """
-    try:
-        # Instantiate model-backed components here so import-time code
-        # doesn't attempt to load models.
-        app.state.analyzer = MotionTraceAnalyzer()
-        app.state.metrics_analyzer = MovementMetricsAnalyzer()
-        app.state.models_ready = True
-    except Exception:
-        # Keep the app running but mark models as not ready; logs will
-        # help diagnose the cause on the host.
-        import traceback
-
-        traceback.print_exc()
-        app.state.models_ready = False
+    app.state.models_ready = True
 
 
 
 @app.get("/health")
 async def health() -> dict:
     """Basic health endpoint reporting whether ML models are ready."""
-    return {"status": "ok", "ready": bool(app.state.models_ready)}
+    return {
+        "status": "ok",
+        "ready": bool(app.state.models_ready),
+        "detector": settings.yolo_model,
+        "targetFps": settings.target_fps,
+    }
+
+
+def get_analyzer():
+    if app.state.analyzer is None:
+        from backend.api.video_analyzer import MotionTraceAnalyzer
+
+        app.state.analyzer = MotionTraceAnalyzer()
+    return app.state.analyzer
+
+
+def get_metrics_analyzer():
+    if app.state.metrics_analyzer is None:
+        from backend.analytics.movement_metrics import MovementMetricsAnalyzer
+
+        app.state.metrics_analyzer = MovementMetricsAnalyzer()
+    return app.state.metrics_analyzer
 
 
 
@@ -75,9 +81,9 @@ async def analyze_video(payload: dict) -> dict:
     video_path = uploaded_videos.get(video_id)
     if not video_path or not video_path.exists():
         raise HTTPException(status_code=404, detail="Uploaded video was not found")
-    if not getattr(app.state, "models_ready", False) or app.state.analyzer is None:
+    if not getattr(app.state, "models_ready", False):
         raise HTTPException(status_code=503, detail="Analysis models are not ready")
-    analysis_id, metadata, frames, trajectories = app.state.analyzer.analyze(video_id, video_path)
+    analysis_id, metadata, frames, trajectories = get_analyzer().analyze(video_id, video_path)
     store.save(analysis_id, metadata, frames, trajectories)
     return metadata.model_dump(by_alias=True)
 
@@ -105,7 +111,7 @@ async def get_trajectory(analysis_id: str, player_id: int) -> dict:
 @app.get("/metrics/{analysis_id}/{player_id}")
 async def get_metrics(analysis_id: str, player_id: int) -> dict:
     frames = store.frames(analysis_id)
-    if not getattr(app.state, "models_ready", False) or app.state.metrics_analyzer is None:
+    if not getattr(app.state, "models_ready", False):
         raise HTTPException(status_code=503, detail="Metrics analyzer is not ready")
-    metrics = app.state.metrics_analyzer.compute_for_player(player_id, frames)
+    metrics = get_metrics_analyzer().compute_for_player(player_id, frames)
     return metrics.model_dump(by_alias=True)

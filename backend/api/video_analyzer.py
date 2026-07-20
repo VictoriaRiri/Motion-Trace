@@ -24,6 +24,8 @@ class MotionTraceAnalyzer:
     def analyze(self, video_id: str, video_path: Path) -> tuple[str, AnalysisMetadata, list[FrameData], dict]:
         source_fps, source_frame_count, duration = video_metadata(video_path)
         stride = max(1, round(source_fps / settings.target_fps))
+        if source_frame_count > 0:
+            stride = max(stride, round(source_frame_count / max(1, settings.max_analysis_frames)))
         tracker = ByteTrackTracker(settings.tracker_iou_threshold, settings.tracker_max_lost_frames)
         trajectories = TrajectoryManager()
         frames: list[FrameData] = []
@@ -66,6 +68,8 @@ class MotionTraceAnalyzer:
             frames.append(FrameData(frameNumber=processed_index, timestamp=timestamp, people=people))
             processed_index += 1
             frame_index += 1
+            if processed_index >= settings.max_analysis_frames:
+                break
 
         capture.release()
         analysis_id = uuid4().hex

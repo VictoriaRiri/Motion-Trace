@@ -50,7 +50,7 @@ class MediaPipePoseEstimator:
     def __init__(self) -> None:
         self.pose = mp.solutions.pose.Pose(
             static_image_mode=False,
-            model_complexity=2,
+            model_complexity=0,
             smooth_landmarks=True,
             enable_segmentation=False,
             min_detection_confidence=0.35,

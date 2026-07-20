@@ -36,7 +36,15 @@ pip install -r backend/requirements.txt
 uvicorn backend.api.main:app --reload
 ```
 
-The default YOLO checkpoint is configured in `backend/config.py`. Replace `yolo11n.pt` with a YOLO26 person-capable checkpoint when that model is available in the Ultralytics runtime.
+The default Render deployment uses `YOLO_MODEL=opencv-hog` so it can boot on Render's 512 MB free instance without installing Torch/CUDA. For a larger CPU/GPU service, install `ultralytics` and set `YOLO_MODEL` to a YOLO checkpoint such as `yolo11n.pt` or a YOLO26 person-capable checkpoint.
+
+Render CPU-lite defaults:
+
+```text
+YOLO_MODEL=opencv-hog
+TARGET_FPS=8
+MAX_ANALYSIS_FRAMES=360
+```
 
 ## Frontend
 

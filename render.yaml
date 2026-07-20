@@ -8,3 +8,9 @@ services:
     envVars:
       - key: PORT
         value: "8000"
+      - key: YOLO_MODEL
+        value: opencv-hog
+      - key: TARGET_FPS
+        value: "8"
+      - key: MAX_ANALYSIS_FRAMES
+        value: "360"

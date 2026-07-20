@@ -3,7 +3,6 @@ from __future__ import annotations
 from pathlib import Path
 from uuid import uuid4
 
-import cv2
 from fastapi import UploadFile
 
 
@@ -18,6 +17,8 @@ async def save_upload(upload: UploadFile, upload_dir: Path) -> tuple[str, Path]:
 
 
 def video_metadata(video_path: Path) -> tuple[float, int, float]:
+    import cv2
+
     capture = cv2.VideoCapture(str(video_path))
     if not capture.isOpened():
         raise ValueError("Unsupported or unreadable video file.")

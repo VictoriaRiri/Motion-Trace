@@ -58,6 +58,8 @@ Set `VITE_API_BASE_URL` if the backend is not running at `http://127.0.0.1:8000`
 
 ## API
 
+- `GET /`
+- `GET /health`
 - `POST /upload`
 - `POST /analyze`
 - `GET /frame/{analysis_id}/{frame_number}`
@@ -98,7 +100,7 @@ The Python backend should be deployed separately on a service suited for video i
 Set this Vercel environment variable so the frontend can call the hosted backend:
 
 ```text
-VITE_API_BASE_URL=https://motiontrace-backend.onrender.com
+VITE_API_BASE_URL=https://motion-trace.onrender.com
 ```
 
-For local development, the frontend will fall back to `http://127.0.0.1:8000` when no environment variable is set. In production, it falls back to `https://motiontrace-backend.onrender.com`, matching the default Render service name in `render.yaml`.
+For local development, the frontend will fall back to `http://127.0.0.1:8000` when no environment variable is set. In production, it falls back to `https://motion-trace.onrender.com`, matching the current Render service in `render.yaml`.

@@ -9,7 +9,9 @@ from backend.api.analysis_store import AnalysisStore
 from backend.config import settings
 from backend.utils.video_io import save_upload
 
+
 settings.ensure_dirs()
+
 app = FastAPI(title=settings.app_name)
 app.add_middleware(
     CORSMiddleware,
@@ -19,7 +21,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Application state and lazy initialization
 store = AnalysisStore(settings.analysis_dir)
 app.state.analyzer = None
 app.state.metrics_analyzer = None
@@ -29,24 +30,25 @@ uploaded_videos: dict[str, Path] = {}
 
 @app.on_event("startup")
 async def initialize_models() -> None:
-    """Keep startup light enough for constrained hosts.
-
-    Heavy CV objects are created on first analysis instead of during deploy,
-    so Render health checks pass before model memory is needed.
-    """
+    """Keep startup light enough for constrained CPU hosts."""
     app.state.models_ready = True
-
 
 
 @app.get("/health")
 async def health() -> dict:
-    """Basic health endpoint reporting whether ML models are ready."""
+    """Basic health endpoint reporting whether analysis can start."""
     return {
         "status": "ok",
         "ready": bool(app.state.models_ready),
         "detector": settings.yolo_model,
         "targetFps": settings.target_fps,
     }
+
+
+@app.get("/")
+async def root() -> dict:
+    """Root endpoint for platform pings and quick manual checks."""
+    return await health()
 
 
 def get_analyzer():
@@ -65,7 +67,6 @@ def get_metrics_analyzer():
     return app.state.metrics_analyzer
 
 
-
 @app.post("/upload")
 async def upload_video(file: UploadFile = File(...)) -> dict[str, str]:
     video_id, path = await save_upload(file, settings.upload_dir)
@@ -78,11 +79,14 @@ async def analyze_video(payload: dict) -> dict:
     video_id = payload.get("videoId")
     if not video_id:
         raise HTTPException(status_code=400, detail="videoId is required")
+
     video_path = uploaded_videos.get(video_id)
     if not video_path or not video_path.exists():
         raise HTTPException(status_code=404, detail="Uploaded video was not found")
+
     if not getattr(app.state, "models_ready", False):
         raise HTTPException(status_code=503, detail="Analysis models are not ready")
+
     analysis_id, metadata, frames, trajectories = get_analyzer().analyze(video_id, video_path)
     store.save(analysis_id, metadata, frames, trajectories)
     return metadata.model_dump(by_alias=True)
@@ -105,7 +109,10 @@ async def get_players(analysis_id: str) -> dict:
 @app.get("/trajectory/{analysis_id}/{player_id}")
 async def get_trajectory(analysis_id: str, player_id: int) -> dict:
     trajectories = store.trajectories(analysis_id)
-    return {"playerId": player_id, "trajectory": trajectories.get(str(player_id), trajectories.get(player_id, {}))}
+    return {
+        "playerId": player_id,
+        "trajectory": trajectories.get(str(player_id), trajectories.get(player_id, {})),
+    }
 
 
 @app.get("/metrics/{analysis_id}/{player_id}")
@@ -113,5 +120,6 @@ async def get_metrics(analysis_id: str, player_id: int) -> dict:
     frames = store.frames(analysis_id)
     if not getattr(app.state, "models_ready", False):
         raise HTTPException(status_code=503, detail="Metrics analyzer is not ready")
+
     metrics = get_metrics_analyzer().compute_for_player(player_id, frames)
     return metrics.model_dump(by_alias=True)

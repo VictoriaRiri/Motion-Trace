@@ -1,13 +1,24 @@
 import type { AnalysisMetadata, FrameData, MovementMetrics } from "./types";
 
 const LOCAL_API = "http://127.0.0.1:8000";
-const DEFAULT_RENDER_API = "https://motiontrace-backend.onrender.com";
+const DEFAULT_RENDER_API = "https://motion-trace.onrender.com";
+const STALE_BACKENDS = [
+  "motiontrace-backend-production.up.railway.app",
+  "motiontrace-backend.onrender.com",
+];
+
+function usableApiBase(value: string | undefined | null) {
+  const trimmed = value?.trim();
+  if (!trimmed) return "";
+  return STALE_BACKENDS.some((staleHost) => trimmed.includes(staleHost)) ? "" : trimmed;
+}
+
 const API_BASE = (() => {
-  const configured = import.meta.env.VITE_API_BASE_URL;
-  if (configured?.trim()) return configured;
+  const configured = usableApiBase(import.meta.env.VITE_API_BASE_URL);
+  if (configured) return configured;
   if (typeof window !== "undefined") {
-    const saved = window.localStorage.getItem("motiontrace_api_base_url");
-    if (saved?.trim()) return saved.trim();
+    const saved = usableApiBase(window.localStorage.getItem("motiontrace_api_base_url"));
+    if (saved) return saved;
     const host = window.location.hostname;
     if (host === "localhost" || host === "127.0.0.1") return LOCAL_API;
     return DEFAULT_RENDER_API;

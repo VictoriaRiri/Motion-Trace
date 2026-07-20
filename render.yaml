@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: motiontrace-backend
+    name: motion-trace
     runtime: docker
     dockerfilePath: ./Dockerfile
     healthCheckPath: /health

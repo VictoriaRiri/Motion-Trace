@@ -22,8 +22,12 @@ class YoloPersonDetector:
         self.model_path = model_path
         self.confidence_threshold = confidence_threshold
         self.model = None
-        self.hog = cv2.HOGDescriptor()
-        self.hog.setSVMDetector(cv2.HOGDescriptor_getDefaultPeopleDetector())
+        self.hog = None
+        try:
+            self.hog = cv2.HOGDescriptor()
+            self.hog.setSVMDetector(cv2.HOGDescriptor_getDefaultPeopleDetector())
+        except Exception:
+            self.hog = None
 
         if model_path != "opencv-hog":
             try:
@@ -66,6 +70,8 @@ class YoloPersonDetector:
         return detections
 
     def _detect_with_hog(self, frame_bgr: np.ndarray) -> list[Detection]:
+        if self.hog is None:
+            return []
         height, width = frame_bgr.shape[:2]
         scale = min(1.0, 640 / max(width, height))
         resized = cv2.resize(frame_bgr, (int(width * scale), int(height * scale))) if scale < 1 else frame_bgr

@@ -1,0 +1,12 @@
+.git
+.vercel
+.venv
+.npm-cache
+__pycache__
+*.pyc
+backend/data
+dist
+frontend/dist
+frontend/node_modules
+node_modules
+*.log
